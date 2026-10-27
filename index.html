@@ -108,4 +108,75 @@ document.addEventListener('click',e=>{
 $('copyAll').addEventListener('click',()=>copyText(lastResult));
 </script>
 </body>
+<script>
+(() => {
+  const API_URL = "https://listinglab-api.latupovrostislav.workers.dev";
+
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+
+    const buttonText = (button.innerText || "").toLowerCase();
+    if (!buttonText.includes("генер") &&
+        !buttonText.includes("создать объявление")) return;
+
+    const fields = [...document.querySelectorAll("textarea, input")]
+      .filter(el => el.value && el.value.trim().length > 5);
+
+    const descriptionField = fields.find(el =>
+      el.tagName === "TEXTAREA"
+    );
+
+    if (!descriptionField) {
+      alert("Не найдено поле описания товара.");
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const description = descriptionField.value.trim();
+    const originalText = button.innerText;
+    button.disabled = true;
+    button.innerText = "Генерирую…";
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description,
+          platform: "Avito",
+          tone: "продающий"
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Ошибка API");
+      }
+
+      let output = document.getElementById("listinglab-ai-result");
+      if (!output) {
+        output = document.createElement("pre");
+        output.id = "listinglab-ai-result";
+        output.style.cssText =
+          "white-space:pre-wrap;overflow-wrap:anywhere;" +
+          "padding:16px;margin:16px 0;border:1px solid #ccc;" +
+          "border-radius:12px;background:white;color:#222;" +
+          "font:16px/1.5 sans-serif;";
+        button.insertAdjacentElement("afterend", output);
+      }
+
+      output.textContent = data.text;
+      output.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (error) {
+      alert("Не удалось сгенерировать объявление: " + error.message);
+    } finally {
+      button.disabled = false;
+      button.innerText = originalText;
+    }
+  }, true);
+})();
+</script>
 </html>
